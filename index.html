@@ -451,7 +451,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxt8GnUlJ9SVgVzjM0593L0rXsDLXcmuZKFCeNBwAxFSW6gg9TwHLRhC_6RZXrUe8MvuA/exec";
+    // URL del Google Apps Script del proyecto "Un neri suelto en Japón"
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_Hjilx5L_vJ2aI1m3mXGvOByuRrtL-mIq2r8X-Sg_I89d_w_Pj-lC3p2qW2sKkL6u/exec";
     let JPY_USD_RATE = 155; 
 
     let START_DATE = null;
@@ -1070,7 +1071,7 @@ async function searchCustomAI(type) {
                     let visualSpan = Math.min(remainingHoursToday, 24);
 
                     let safeTitle = evContinuation.title.replace(/'/g, "\\'");
-                    let icon = evContinuation.type === 'transporte' ? '✈️️' : (evContinuation.type === 'sleep' ? '🏨' : '📍');
+                    let icon = evContinuation.type === 'transporte' ? '✈' : (evContinuation.type === 'sleep' ? '🏨' : '📍');
 
                     rowHTML += `<td rowspan="${visualSpan}" style="padding:1px; vertical-align:top; height:${visualSpan * 38}px;">
                         <div class="event-block event-${evContinuation.type || 'actividad'}" onclick="showModalByObject('${safeTitle}', '${evContinuation.date}', ${evContinuation.startHour})">
@@ -1113,7 +1114,7 @@ async function searchCustomAI(type) {
         currentModalEventObj = ev;
         document.getElementById('modalTitle').innerText = ev.title;
 
-        let bookingHTML = ev.bookingCode ? `<p style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.85rem; margin-bottom:8px;">🎟️ Reserva/Ticket: ${ev.bookingCode}</p>` : '';
+        let bookingHTML = ev.bookingCode ? `<p style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.85rem; margin-bottom:8px;">🎟️️ Reserva/Ticket: ${ev.bookingCode}</p>` : '';
 
         let routeHTML = '';
         if (ev.type === 'transporte') {
