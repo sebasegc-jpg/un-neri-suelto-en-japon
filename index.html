@@ -230,7 +230,7 @@
 
             <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-shows-input" placeholder="Ej: Conciertos en Tokio, eventos anime, festivales..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
-                <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟️ Buscar Eventos</button>
+                <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟️️ Buscar Eventos</button>
             </div>
 
             <div class="compact-accordion-list" id="shows-container">
@@ -451,8 +451,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // URL del Google Apps Script del proyecto "Un neri suelto en Japón"
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_Hjilx5L_vJ2aI1m3mXGvOByuRrtL-mIq2r8X-Sg_I89d_w_Pj-lC3p2qW2sKkL6u/exec";
+    // URL de Google Apps Script del proyecto "Un neri suelto en Japón"
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwk9d9QG6mHfrutWJfxcDm3YOfvaDGllrpFfJl0N2-8q2_emmDKBBJi5kcbsdy4TlogrA/exec";
     let JPY_USD_RATE = 155; 
 
     let START_DATE = null;
@@ -959,7 +959,7 @@ async function searchCustomAI(type) {
                     <div class="pending-title">📍 ${ev.title}</div>
                     <div class="pending-meta">Fecha: ${ev.date || 'Sin fecha'} | Hora: Pendiente</div>
                     <button class="pending-btn" onclick="editPendingEvent('${safeTitle}', '${ev.date}')">
-                        ✏️ Asignar Hora / Editar
+                        ✏️️ Asignar Hora / Editar
                     </button>
                 </div>
             `;
@@ -1114,7 +1114,7 @@ async function searchCustomAI(type) {
         currentModalEventObj = ev;
         document.getElementById('modalTitle').innerText = ev.title;
 
-        let bookingHTML = ev.bookingCode ? `<p style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.85rem; margin-bottom:8px;">🎟️️ Reserva/Ticket: ${ev.bookingCode}</p>` : '';
+        let bookingHTML = ev.bookingCode ? `<p style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:4px; font-weight:bold; font-size:0.85rem; margin-bottom:8px;">🎟 Reserva/Ticket: ${ev.bookingCode}</p>` : '';
 
         let routeHTML = '';
         if (ev.type === 'transporte') {
