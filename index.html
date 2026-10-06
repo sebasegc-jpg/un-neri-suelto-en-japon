@@ -147,6 +147,7 @@
 
             <div class="external-links">
                 <a href="https://docs.google.com/spreadsheets/d/1H4vFya_aI-MoD8QUOM5NXrr-OBqVoYLTMjhosohXC-8/edit" target="_blank" class="ext-btn"><i class="fa-solid fa-table"></i> Google Sheet (Editar)</a>
+                <button onclick="configApiKeys()" class="ext-btn" style="cursor:pointer;"><i class="fa-solid fa-key"></i> Claves API</button>
             </div>
         </div>
     </header>
@@ -216,7 +217,7 @@
 
             <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-recom-input" placeholder="Ej: Mercados nocturnos en Taipéi, tiendas en Akihabara..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
-                <button onclick="searchCustomAI('recom')" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🔍 Buscar Spots</button>
+                <button id="btn-search-recom" onclick="searchCustomAI('recom')" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🔍 Buscar Spots</button>
             </div>
 
             <div class="compact-accordion-list" id="recom-container">
@@ -230,7 +231,7 @@
 
             <div style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem; max-width: 600px;">
                 <input type="text" id="custom-shows-input" placeholder="Ej: Conciertos en Tokio, eventos anime, festivales..." style="flex: 1; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px;">
-                <button onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟 Buscar Eventos</button>
+                <button id="btn-search-shows" onclick="searchCustomAI('shows')" style="background: #be185d; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🎟 Buscar Eventos</button>
             </div>
 
             <div class="compact-accordion-list" id="shows-container">
@@ -378,7 +379,7 @@
                 <div style="display: flex; gap: 0.5rem;">
                     <div class="form-group" style="flex:1;">
                         <label>Fecha Salida / Inicio</label>
-                        <input type="date" id="ev-date" required onchange="calculateDuration()">
+                        <input type="date" id="ev-date" required onchange="updateHotelRouteLink(); calculateDuration();">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label>Hora Salida (0-23)</label>
@@ -413,6 +414,13 @@
                     </div>
                 </div>
 
+                <div class="form-group" id="hotel-route-box" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; padding:0.6rem; border-radius:6px; font-size:0.8rem;">
+                    <span id="hotel-route-text" style="color:#0369a1; font-weight:bold;">🏨 Hotel asignado al día: -</span>
+                    <div style="margin-top:4px;">
+                        <a id="hotel-maps-link" href="#" target="_blank" style="color:#0284c7; font-weight:bold; text-decoration:underline;">🧭 Calcular tiempo de viaje en Google Maps</a>
+                    </div>
+                </div>
+
                 <div class="form-group" id="booking-code-group">
                     <label>Código de Reserva / Pasaje (Opcional)</label>
                     <input type="text" id="ev-booking-code" placeholder="Ej: Ticket #126 / PNR: XY892K">
@@ -420,7 +428,7 @@
 
                 <div class="form-group" id="single-location-group" style="display:none;">
                     <label>Ubicación / Dirección / Link Google Maps</label>
-                    <input type="text" id="ev-location" placeholder="Ej: https://maps.app.goo.gl/... o Tokio">
+                    <input type="text" id="ev-location" oninput="updateHotelRouteLink()" placeholder="Ej: https://maps.app.goo.gl/... o Tokio">
                 </div>
 
                 <div style="display: flex; gap: 0.5rem; flex-direction:column;" id="transport-location-group">
@@ -451,7 +459,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwk9d9QG6mHfrutWJfxcDm3YOfvaDGllrpFfJl0N2-8q2_emmDKBBJi5kcbsdy4TlogrA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRGtR-VCM0kUo0Vm5KSP6XIr0FbKujWO2EgrBBcFa6ZCxxOrcovO4uB23HnmOhemPOSQ/exec";
         let JPY_USD_RATE = 155; 
 
         let START_DATE = null;
@@ -463,7 +471,7 @@
         let traveler2 = localStorage.getItem('traveler2') || 'Acompañante';
 
         let currentModalEventObj = null;
-        let currentKeyIndex = 0;
+        let isSearchingAI = false;
 
         let leafletMap = null;
         let mapMarkers = [];
@@ -485,17 +493,26 @@
         };
 
         function getApiKeys() {
-            let raw = localStorage.getItem('NERI_JAPON_GEMINI_KEYS') || localStorage.getItem('GEMINI_API_KEYS') || localStorage.getItem('GEMINI_API_KEY');
+            let raw = localStorage.getItem('UN_NERI_IN_JAPAN_GEMINI_KEYS');
             if (!raw) {
-                raw = prompt("Ingresá tus API Keys de Gemini (puedes pegar hasta 3 separadas por coma):");
+                raw = prompt("Ingresá tus API Keys de Gemini (separadas por coma si tenés varias):");
                 if (raw) {
                     raw = raw.trim();
-                    localStorage.setItem('NERI_JAPON_GEMINI_KEYS', raw);
+                    localStorage.setItem('UN_NERI_IN_JAPAN_GEMINI_KEYS', raw);
                 } else {
                     return [];
                 }
             }
             return raw.split(',').map(k => k.trim()).filter(k => k.length > 0);
+        }
+
+        function configApiKeys() {
+            let current = localStorage.getItem('UN_NERI_IN_JAPAN_GEMINI_KEYS') || '';
+            let raw = prompt("Modificar API Keys de Gemini (separadas por coma):", current);
+            if (raw !== null) {
+                localStorage.setItem('UN_NERI_IN_JAPAN_GEMINI_KEYS', raw.trim());
+                alert("Claves guardadas únicamente para esta app.");
+            }
         }
 
         function formatMarkdown(text) {
@@ -557,6 +574,39 @@
                     const diffHours = Math.round(diffMs / (1000 * 60 * 60));
                     document.getElementById('ev-duration').value = diffHours;
                 }
+            }
+        }
+
+        function updateHotelRouteLink() {
+            const evDateStr = document.getElementById('ev-date').value;
+            const routeBox = document.getElementById('hotel-route-box');
+            const routeText = document.getElementById('hotel-route-text');
+            const routeLink = document.getElementById('hotel-maps-link');
+
+            if (!evDateStr) {
+                if (routeBox) routeBox.style.display = 'none';
+                return;
+            }
+
+            const targetDate = parseDateStr(evDateStr);
+            if (!targetDate) return;
+
+            const acc = accommodationsData.find(a => {
+                let startObj = parseDateStr(a.start);
+                let endObj = parseDateStr(a.end);
+                if (!startObj || !endObj) return false;
+                return targetDate >= startObj && targetDate <= endObj;
+            });
+
+            if (acc) {
+                const destLocation = document.getElementById('ev-location').value || document.getElementById('ev-title').value || 'Japón';
+                const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(acc.name)}&destination=${encodeURIComponent(destLocation)}&travelmode=transit`;
+                
+                if (routeText) routeText.innerText = `🏨 Hotel asignado al día: ${acc.name}`;
+                if (routeLink) routeLink.href = mapsUrl;
+                if (routeBox) routeBox.style.display = 'block';
+            } else {
+                if (routeBox) routeBox.style.display = 'none';
             }
         }
 
@@ -786,11 +836,16 @@
         }
 
         async function searchCustomAI(type) {
+            if (isSearchingAI) return;
+
             const isShow = type === 'shows';
             const inputId = isShow ? 'custom-shows-input' : 'custom-recom-input';
             const containerId = isShow ? 'shows-container' : 'recom-container';
+            const btnId = isShow ? 'btn-search-shows' : 'btn-search-recom';
+
             const inputEl = document.getElementById(inputId);
-            
+            const btnEl = document.getElementById(btnId);
+
             if (!inputEl) return;
             const userQuery = inputEl.value.trim();
 
@@ -799,20 +854,24 @@
                 return;
             }
 
+            const keys = getApiKeys();
+            if (!keys || keys.length === 0) {
+                alert("No hay API Keys guardadas en el navegador.");
+                return;
+            }
+
+            isSearchingAI = true;
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.style.opacity = '0.6';
+            }
+
             const container = document.getElementById(containerId);
-            
             const loadingCard = document.createElement('div');
             loadingCard.id = 'temp-loading-card';
             loadingCard.style.cssText = "padding:1rem; background:#fff; border:1px solid var(--border); border-radius:6px; margin-bottom:1rem; color:var(--text-muted); font-style:italic;";
             loadingCard.innerHTML = `🔎 Consultando a Gemini sobre "${userQuery}"... Por favor aguardá unos segundos.`;
             container.prepend(loadingCard);
-
-            const keys = getApiKeys();
-            if (!keys || keys.length === 0) {
-                document.getElementById('temp-loading-card')?.remove();
-                alert("No hay API Keys guardadas en el navegador.");
-                return;
-            }
 
             let cities = [...new Set(accommodationsData.map(a => a.name))].join(', ') || "Taiwán, Tokio, Kioto";
 
@@ -824,42 +883,52 @@ Instrucciones:
 2. Responde en español con formato Markdown claro y estructurado (listas, negritas).`;
 
             let resultText = "";
+            let keyStartIndex = parseInt(localStorage.getItem('LAST_USED_KEY_INDEX') || '0', 10);
 
             for (let i = 0; i < keys.length; i++) {
-                const activeKey = keys[(currentKeyIndex + i) % keys.length];
-                
-                const endpoints = [
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`,
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(activeKey)}`
-                ];
+                const activeIndex = (keyStartIndex + i) % keys.length;
+                const activeKey = keys[activeIndex];
 
-                for (let url of endpoints) {
-                    try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 15000);
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(activeKey)}`;
 
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
-                            signal: controller.signal
-                        });
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-                        clearTimeout(timeoutId);
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
+                        signal: controller.signal
+                    });
 
-                        const data = await response.json();
-                        if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                            resultText = data.candidates[0].content.parts[0].text;
-                            currentKeyIndex = (currentKeyIndex + i) % keys.length;
-                            break;
-                        }
-                    } catch (err) {
-                        console.warn(`Intento con clave ${i + 1} demoró o falló.`);
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    clearTimeout(timeoutId);
+
+                    const data = await response.json();
+
+                    if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                        resultText = data.candidates[0].content.parts[0].text;
+                        localStorage.setItem('LAST_USED_KEY_INDEX', ((activeIndex + 1) % keys.length).toString());
+                        break;
+                    } 
+                    
+                    if (response.status >= 400 && response.status < 429) {
+                        console.error(`Error HTTP ${response.status}:`, data.error?.message);
+                        alert(`Error en la consulta (${response.status}): ${data.error?.message || 'Error de parámetro o modelo.'}`);
+                        break;
                     }
+
+                    if (response.status === 429) {
+                        console.warn(`Cuota agotada (429) en Key #${activeIndex + 1}. Probando siguiente...`);
+                    }
+
+                } catch (err) {
+                    console.warn(`Clave #${activeIndex + 1} demoró o falló por timeout.`);
                 }
 
-                if (resultText) break;
+                if (i < keys.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
             }
 
             document.getElementById('temp-loading-card')?.remove();
@@ -871,7 +940,7 @@ Instrucciones:
                     <details class="compact-item" open style="border: 2px solid var(--primary); margin-bottom:0.8rem;">
                         <summary class="compact-summary" style="background: #fef2f2;">
                             <span class="summary-title">✨ 🎯 Búsqueda: ${userQuery}</span>
-                            <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta IA en vivo</span>
+                            <span class="summary-badge" style="background:var(--primary); color:white;">Respuesta Gemini 3.6</span>
                         </summary>
                         <div class="compact-content">
                             ${formattedBody}
@@ -882,15 +951,24 @@ Instrucciones:
                 container.innerHTML = newAccordion + container.innerHTML;
                 inputEl.value = '';
 
-                saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
-            } else {
-                alert("Todas las API Keys de Gemini demoraron en responder o agotaron cuota. Probá de nuevo en un momento.");
+                await saveCustomRecommendationToSheet(userQuery, resultText, isShow ? "Shows" : "Recomendaciones");
+            } else if (!document.querySelector('.compact-item[open]')) {
+                alert("No se obtuvo respuesta. Por favor revisá la consola F12 o tus API Keys.");
             }
+
+            setTimeout(() => {
+                isSearchingAI = false;
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.style.opacity = '1';
+                }
+            }, 5000);
         }
 
         async function saveCustomRecommendationToSheet(title, text, sheetName) {
             try {
                 const payload = JSON.stringify({
+                    action: 'addRecommendation',
                     sheet: sheetName,
                     title: title,
                     details: text,
@@ -902,6 +980,7 @@ Instrucciones:
                     mode: 'no-cors',
                     body: new Blob([payload], { type: 'text/plain' })
                 });
+                console.log(`Guardado en hoja ${sheetName} exitosamente.`);
             } catch (err) {
                 console.warn('Error al guardar recomendación en Google Sheets:', err);
             }
@@ -1054,7 +1133,7 @@ Instrucciones:
                         if (evStart.type === 'transporte' && (!evStart.originLink && !evStart.destLink)) locText = evStart.location || '';
 
                         let safeTitle = evStart.title.replace(/'/g, "\\'");
-                        let icon = evStart.type === 'transporte' ? '✈️' : (evStart.type === 'sleep' ? '🏨' : '📍');
+                        let icon = evStart.type === 'transporte' ? '✈' : (evStart.type === 'sleep' ? '🏨' : '📍');
 
                         rowHTML += `<td rowspan="${visualSpan}" style="padding:1px; vertical-align:top; height:${visualSpan * 38}px;">
                             <div class="event-block event-${evStart.type || 'actividad'}" onclick="showModalByObject('${safeTitle}', '${evStart.date}', ${evStart.startHour})">
@@ -1169,6 +1248,7 @@ Instrucciones:
             document.getElementById('ev-old-title').value = "";
             document.getElementById('ev-old-date').value = "";
             toggleLocationFields();
+            updateHotelRouteLink();
             document.getElementById('addModal').style.display = 'flex'; 
         }
 
@@ -1197,6 +1277,7 @@ Instrucciones:
             document.getElementById('ev-details').value = ev.details || '';
 
             toggleLocationFields();
+            updateHotelRouteLink();
             document.getElementById('addModal').style.display = 'flex';
         }
 
@@ -1216,6 +1297,8 @@ Instrucciones:
             const oldDate = document.getElementById('ev-old-date').value;
 
             const newEv = {
+                action: 'addEvent',
+                sheet: 'Itinerario',
                 title: document.getElementById('ev-title').value,
                 date: document.getElementById('ev-date').value,
                 startHour: parseInt(document.getElementById('ev-hour').value) || 0,
